@@ -16,31 +16,70 @@
 
 import sos.plugintools
 import os, subprocess
+import tempfile
 import re
 
 class eucafrontend(sos.plugintools.PluginBase):
     """Eucalyptus Cloud - Frontend
     """
     def checkenabled(self):
-        if self.isInstalled("euca2ools"):
-            return True
-        if self.isInstalled("eucalyptus-admin-tools"):
+        if self.isInstalled("euca2ools") and self.isInstalled("eucalyptus-admin-tools") and self.isInstalled("eucalyptus-cloud"):
             return True
         return False
 
-    def eucacreds_setup(self):
-        getcreds_cmd = ["/usr/sbin/euca-get-credentials", "-a", "eucalyptus", "-u", "admin", "/tmp/eucacreds/admin.zip"]
-        unzip_cmd = ["/usr/bin/unzip", "/tmp/eucacreds/admin.zip", "-d", "/tmp/eucacreds"]
+    def clc_status(self):
+        clc_check_cmd = ["/sbin/service", "eucalyptus-cloud", "status"]
+        """
+        Check for eucalyptus-cloud process 
+        """
         try:
-            mkdir_output = os.mkdir("/tmp/eucacreds")
+            clc_check_output,unused_val = subprocess.Popen(clc_check_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         except OSError, e:
-            error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error creating /tmp/eucacreds directory")
+                self.addDiagnose("Error checking eucalyptus-cloud process status")
                 raise OSError(e)
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
+
+        if re.match("^Eucalyptus services are running", clc_check_output):
+            self.addDiagnose("Eucalyptus services are running")
+            pass
+        else:
+            """
+            Check for eucalyptus-cloud process (in case error with /sbin/service check) 
+            """
+            clc_pgrep_cmd = ["/usr/bin/pgrep", "eucalyptus"]
+            try:
+                clc_pgrep_chk, unused_val = subprocess.Popen(clc_pgrep_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()                
+            except OSError, e:
+                if 'No such' in error_string:
+                    self.addDiagnose("Error checking eucalyptus-cloud process status")
+                    raise OSError(e)
+                else:
+                    self.addDiagnose("Error: %s" % e)
+                    raise OSError(e) 
+            
+            if clc_pgrep_chk:
+                for proc in clc_pgrep_chk.splitlines():
+                    if not proc:
+                        raise
+                    else:
+                        self.addDiagnose("Eucalyptus services are running: " + proc + ".")
+            else:
+                self.addDiagnose("Error checking eucalyptus-cloud process status")
+                print "### eucalyptus-cloud process doesn't seem to be running"
+                raise
+
+    def eucacreds_setup(self):
+        try:
+            mkdir_output = tempfile.mkdtemp(dir='/tmp')
+        except OSError, e:
+                self.addDiagnose("Error creating directory under /tmp")
+                raise OSError(e)
+
+        getcreds_cmd = ["/usr/sbin/euca-get-credentials", "-a", "eucalyptus", "-u", "admin", mkdir_output + "/admin.zip"]
+        unzip_cmd = ["/usr/bin/unzip", mkdir_output + "/admin.zip", "-d", mkdir_output ]
         try:
             getcreds_output = subprocess.Popen(getcreds_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         except OSError, e:
@@ -61,109 +100,109 @@ class eucafrontend(sos.plugintools.PluginBase):
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
-        return
+        return mkdir_output
 
-    def get_access_key(self):
+    def get_access_key(self, tmp_dir):
         try:
-            with open("/tmp/eucacreds/eucarc") as eucarc_file:
+            with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
                     if re.search("^export AWS_ACCESS_KEY", line):
                         name, var = line.partition("=")[::2]
                         access_key = var.replace('\'','').strip()
                         return access_key
             if access_key is None:
-                self.addDiagnose("Error grabbing AWS_ACCESS_KEY from /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error grabbing AWS_ACCESS_KEY from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error opening /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error opening " + tmp_dir + "/eucarc")
                 raise OSError(e)
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
  
-    def get_secret_key(self):
+    def get_secret_key(self, tmp_dir):
         try:
-            with open("/tmp/eucacreds/eucarc") as eucarc_file:
+            with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
                     if re.search("^export AWS_SECRET_KEY", line):
                         name, var = line.partition("=")[::2]
                         secret_key = var.replace('\'','').strip()
                         return secret_key
             if secret_key is None:
-                self.addDiagnose("Error grabbing AWS_SECRET_KEY from /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error grabbing AWS_SECRET_KEY from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error opening /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error opening " + tmp_dir + "/eucarc")
                 raise OSError(e)
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
  
-    def get_account_id(self):
+    def get_account_id(self, tmp_dir):
         try:
-            with open("/tmp/eucacreds/eucarc") as eucarc_file:
+            with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
                     if re.search("^export EC2_USER_ID", line):
                         name, var = line.partition("=")[::2]
                         account_id = var.replace('\'','').strip()
                         return account_id
             if account_id is None:
-                self.addDiagnose("Error grabbing EC2_USER_ID from /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error grabbing EC2_USER_ID from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error opening /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error opening " + tmp_dir + "/eucarc")
                 raise OSError(e)
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
 
-    def get_s3_url(self):
+    def get_s3_url(self, tmp_dir):
         try:
-            with open("/tmp/eucacreds/eucarc") as eucarc_file:
+            with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
                     if re.search("^export S3_URL", line):
                         name, var = line.partition("=")[::2]
                         s3_url = var.strip()
                         return s3_url
             if s3_url is None:
-                self.addDiagnose("Error grabbing S3_URL from /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error grabbing S3_URL from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error opening /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error opening " + tmp_dir + "/eucarc")
                 raise OSError(e)
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
         
-    def get_ec2_url(self):
+    def get_ec2_url(self, tmp_dir):
         try:
-            with open("/tmp/eucacreds/eucarc") as eucarc_file:
+            with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
                     if re.search("^export EC2_URL", line):
                         name, var = line.partition("=")[::2]
                         ec2_url = var.strip()
                         return ec2_url
             if ec2_url is None:
-                self.addDiagnose("Error grabbing EC2_URL from /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error grabbing EC2_URL from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error opening /tmp/eucacreds/eucarc")
+                self.addDiagnose("Error opening " + tmp_dir + "/eucarc")
                 raise OSError(e)
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
         
-    def euca2ools_conf_setup(self):
+    def euca2ools_conf_setup(self, tmp_dir):
         try:
             mkdir_output = os.mkdir("/etc/euca2ools/conf.d")
         except OSError, e:
@@ -177,10 +216,10 @@ class eucafrontend(sos.plugintools.PluginBase):
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e) 
-        access_key = self.get_access_key()     
-        secret_key = self.get_secret_key()
-        account_id = self.get_account_id()
-        s3_url = self.get_s3_url()
+        access_key = self.get_access_key(tmp_dir)     
+        secret_key = self.get_secret_key(tmp_dir)
+        account_id = self.get_account_id(tmp_dir)
+        s3_url = self.get_s3_url(tmp_dir)
         euca2ools_conf = open('/etc/euca2ools/conf.d/sos-euca2ools.ini', 'w')
         try:
             euca2ools_conf.write("[user admin]\n") 
@@ -282,17 +321,18 @@ class eucafrontend(sos.plugintools.PluginBase):
         self.collectExtOutput("/usr/bin/euare-grouplistusers --as-account " + account + " -g " + group + " --region admin@sosreport", suggest_filename="euare-grouplistusers-" + account + "-" + group)
         self.collectExtOutput("/usr/bin/euare-grouplistpolicies --as-account " + account + " -g " + group + " -v --region admin@sosreport", suggest_filename="euare-grouplistpolicies-" + account + "-" + group)
 
-    def cleanup(self):
+    def cleanup(self, tmp_dir):
         self.addDiagnose("### Cleanup credentials ###")
-        self.collectExtOutput("rm -rf /tmp/eucacreds", suggest_filename="cleanup-eucacreds")
-        self.collectExtOutput("rm -rf /tmp/admin.zip", suggest_filename="cleanup-admin-zip")
+        self.collectExtOutput("rm -rf " + tmp_dir, suggest_filename="cleanup-tmpeucacreds")
         self.collectExtOutput("rm -rf /etc/euca2ools/conf.d/sos-euca2ools.ini", suggest_filename="cleanup-sos-euca2ools-config")
  
     def setup(self):
+        self.addDiagnose("### Check to make sure eucalyptus-cloud is running ###")
+        self.clc_status()
         self.addDiagnose("### Grabbing eucalyptus/admin credentials ###")
-        self.eucacreds_setup()
+        tmp_dir = self.eucacreds_setup()
         self.addDiagnose("### Setting up sos-euca2ools.ini file ###")
-        self.euca2ools_conf_setup()
+        self.euca2ools_conf_setup(tmp_dir)
         self.addCopySpec("/etc/euca2ools")
         self.addCopySpec("/tmp/eucacreds")
         self.addDiagnose("### Grabbing Cloud Resource Data ###")
@@ -314,9 +354,9 @@ class eucafrontend(sos.plugintools.PluginBase):
                 self.get_account_group_info(account, group)
 
         self.addDiagnose("### Grabbing Cloud Component Data ###")
-        access_key = self.get_access_key()     
-        secret_key = self.get_secret_key()
-        ec2_url = self.get_ec2_url()
+        access_key = self.get_access_key(tmp_dir)     
+        secret_key = self.get_secret_key(tmp_dir)
+        ec2_url = self.get_ec2_url(tmp_dir)
         self.collectExtOutput("/usr/sbin/euca-describe-arbitrators -U " + ec2_url + " -I " + access_key + " -S " + secret_key, suggest_filename="euca-describe-arbitrators")
         self.collectExtOutput("/usr/sbin/euca-describe-clouds -U " + ec2_url + " -I " + access_key + " -S " + secret_key, suggest_filename="euca-describe-clouds")
         self.collectExtOutput("/usr/sbin/euca-describe-clusters -U " + ec2_url + " -I " + access_key + " -S " + secret_key, suggest_filename="euca-describe-clusters")
@@ -329,6 +369,6 @@ class eucafrontend(sos.plugintools.PluginBase):
         self.collectExtOutput("/usr/sbin/euca-describe-vmware-brokers -U " + ec2_url + " -I " + access_key + " -S " + secret_key, suggest_filename="euca-describe-vmware-brokers")
         self.collectExtOutput("/usr/sbin/euca-describe-walruses -U " + ec2_url + " -I " + access_key + " -S " + secret_key, suggest_filename="euca-describe-walruses")
         self.collectExtOutput("/usr/bin/euca-version")
-        self.cleanup()
+        self.cleanup(tmp_dir)
         return
 
