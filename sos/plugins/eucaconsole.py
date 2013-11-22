@@ -1,4 +1,4 @@
-## Copyright (C) 2013 Eucalyptus Systems, Inc., Richard Isaacson <richard@eucalyptus.com>
+## Copyright (C) 2013 Eucalyptus Systems, Inc.
 
 ### This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -26,5 +26,16 @@ class eucaconsole(sos.plugintools.PluginBase):
         return False
 
     def setup(self):
+        """
+        Grabs the following regarding the Eucalyptus Console:
+            - configuration file under /etc/eucalyptus-console
+            - log file location under /var/log/eucalyptus-console directory
+        """
         self.addCopySpec("/etc/eucalyptus-console")
+        """
+        Check to see if /var/log/eucalyptus-console exists - this was a change for Eucalyptus 3.4.0-1
+        If it doesn't exists, then the Eucalyptus User Console logs will be in /var/log/messages
+        """
+        if os.path.exists('/var/log/eucalyptus-console'):
+            self.addCopySpec("/var/log/eucalyptus-console/*")
         return

@@ -2,14 +2,14 @@
 
 Summary: A plugin to sosreport to collect data about Eucalyptus clouds
 Name: eucalyptus-sos-plugins
-Version: 0.1.3
-Release: 1%{?dist}
+Version: 0.1.4
+Release: 0%{?dist}
 Source0: %{name}-%{version}.tar.gz
 Group: Applications/System
 License: GPLv2+
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildArch: noarch
-Url: http://github.com/risaacson/eucalyptus-sosreport-plugins
+Url: http://github.com/eucalyptus/eucalyptus-sosreport-plugins
 BuildRequires: python-devel
 Requires: sos
 
