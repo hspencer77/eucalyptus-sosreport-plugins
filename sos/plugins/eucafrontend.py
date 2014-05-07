@@ -226,17 +226,24 @@ class eucafrontend(sos.plugintools.PluginBase):
         
     def get_iam_url(self, tmp_dir):
         """
-        Grab EUARE_URL from unzip admin/eucalyptus credentials
+        Grab AWS_IAM_URL/EUARE_URL from unzip admin/eucalyptus credentials
         """
+        self.addDiagnose("## Checking euca2ools version to confirm which AWS_IAM_URL/EUARE_URL pattern use")
+        euca2ools_version = self.checkversion('euca2ools')
+        if re.match('^3.1+', euca2ools_version):
+            iam_pattern = "^export AWS_IAM_URL"
+        else:
+            iam_pattern = "^export EUARE"
+
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
-                    if re.search("^export EUARE", line):
+                    if re.search(iam_pattern, line):
                         name, var = line.partition("=")[::2]
                         iam_url = var.strip()
                         return iam_url
             if iam_url is None:
-                self.addDiagnose("Error grabbing EUARE_URL from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing AWS_IAM_URL/EUARE_URL from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
