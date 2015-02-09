@@ -41,6 +41,7 @@ $(NAME)-$(VERSION).tar.gz: clean
 
 clean:
 	@rm -fv *~ .*~ changenew ChangeLog.old $(NAME)-$(VERSION).tar.gz
+	@rm -rfv $(DIST_BUILD_DIR)/*
 	@rm -rf rpm-build
 	@for i in `find . -iname *.pyc`; do \
 		rm $$i; \
