@@ -8,7 +8,7 @@ Source0: %{name}-%{version}.tar.gz
 Group: Applications/System
 License: GPLv2+
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildArch: noarch
+BuildArch: x86_64
 Url: http://github.com/eucalyptus/eucalyptus-sosreport-plugins
 BuildRequires: python-devel
 Requires: sos
