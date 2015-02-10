@@ -215,10 +215,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         s3_url = var.strip()
                         return s3_url
-            if s3_url is None:
-                self.addDiagnose("Error grabbing S3_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -239,10 +235,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         ec2_url = var.strip()
                         return ec2_url
-            if ec2_url is None:
-                self.addDiagnose("Error grabbing EC2_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -263,10 +255,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         iam_url = var.strip()
                         return iam_url
-            if iam_url is None:
-                self.addDiagnose("Error grabbing EUARE_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -287,10 +275,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         autoscale_url = var.strip()
                         return autoscale_url
-            if autoscale_url is None:
-                self.addDiagnose("Error grabbing AWS_AUTO_SCALING_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -311,10 +295,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         elb_url = var.strip()
                         return elb_url
-            if elb_url is None:
-                self.addDiagnose("Error grabbing AWS_ELB_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -335,10 +315,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         cloudwatch_url = var.strip()
                         return cloudwatch_url
-            if cloudwatch_url is None:
-                self.addDiagnose("Error grabbing AWS_CLOUDWATCH_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -359,10 +335,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         sts_url = var.strip()
                         return sts_url
-            if sts_url is None:
-                self.addDiagnose("Error grabbing STS_URL from "
-                                 + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -378,7 +350,8 @@ class eucafrontend(sos.plugintools.PluginBase):
         information in admin/eucalyptus credentials file (eucarc)
         """
         try:
-            os.mkdir("/etc/euca2ools/conf.d")
+            if not os.path.isdir("/etc/euca2ools/conf.d"):
+                os.mkdir("/etc/euca2ools/conf.d")
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -470,7 +443,7 @@ class eucafrontend(sos.plugintools.PluginBase):
         accounts = []
         for account_info in actlist.splitlines():
             entry = re.split(r'\t', account_info)
-            accounts.append("\"" + entry[0] + "\"")
+            accounts.append(re.escape(entry[0]))
         return accounts
 
     def get_account_info(self, account, tmp_dir=''):
@@ -502,8 +475,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   suggest_filename="euare-grouplistbypath-"
                                   + account)
         else:
-            self.collectExtOutput("/usr/bin/euare-accountaliaslist \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-accountaliaslist "
+                                  + "--as-account "
                                   + account + " --region admin@sosreport",
                                   suggest_filename="euare-accountaliaslist-"
                                   + account)
@@ -515,10 +488,20 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + account + " --region admin@sosreport",
                                   suggest_filename="euare-userlistbypath-"
                                   + account)
-            self.collectExtOutput("/usr/bin/euare-grouplistbypath \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-grouplistbypath "
+                                  + "--as-account "
                                   + account + " --region admin@sosreport",
                                   suggest_filename="euare-grouplistbypath-"
+                                  + account)
+            self.collectExtOutput("/usr/bin/euare-rolelistbypath "
+                                  + "--as-account "
+                                  + account + " --region admin@sosreport",
+                                  suggest_filename="euare-rolelistbypath-"
+                                  + account)
+            self.collectExtOutput("/usr/bin/euare-instanceprofilelistbypath "
+                                  + "--as-account "
+                                  + account + " --region admin@sosreport",
+                                  suggest_filename="euare-instprflstbypath-"
                                   + account)
 
     def get_userlist(self, account, tmp_dir=''):
@@ -618,8 +601,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-usergetinfo-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-usergetloginprofile \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-usergetloginprofile "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-usergetloginprofile-"
@@ -629,14 +612,14 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-userlistcerts-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-usergetattributes \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-usergetattributes "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " --show-extra --region admin@sosreport",
                                   suggest_filename="euare-usergetattributes-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-userlistgroups \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-userlistgroups "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-userlistgroups-"
@@ -646,8 +629,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-userlistkeys-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-userlistpolicies \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-userlistpolicies "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " -v --region admin@sosreport",
                                   suggest_filename="euare-userlistpolicies-"
@@ -736,6 +719,90 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " -v --region admin@sosreport",
                                   suggest_filename="euare-grouplistpolicies-"
                                   + account + "-" + group)
+
+    def get_rolelist(self, account, tmp_dir=''):
+        """
+        Grab the roles from the Euare account passed in and return the list
+        """
+        get_rolelist_cmd = ["/usr/bin/euare-rolelistbypath",
+                            "--as-account", account, "--region",
+                            "admin@sosreport"]
+
+        try:
+            rlist, v = subprocess.Popen(get_rolelist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error: " + account + " Role List.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        roles = []
+        sColon = re.compile('[:]')
+        for role_info in rlist.splitlines():
+            entry = sColon.split(role_info)
+            role_id = entry[5].strip().split("/")
+            roles.append(role_id[-1])
+        return roles
+
+    def get_account_role_info(self, account, role, tmp_dir=''):
+        """
+        Grab the resources of the role in the Euare account passed in
+        """
+        self.collectExtOutput("/usr/bin/euare-rolelistpolicies --as-account "
+                              + account + " -r " + role
+                              + " --region admin@sosreport",
+                              suggest_filename="euare-rolelistpolicies-"
+                              + account + "-" + role)
+        self.collectExtOutput("/usr/bin/euare-instanceprofilelistforrole "
+                              + "--as-account "
+                              + account + " -r " + role
+                              + " --region admin@sosreport",
+                              suggest_filename="euare-instprofilelistforrole-"
+                              + account + "-" + role)
+
+    def get_instprofile(self, account, tmp_dir=''):
+        """
+        Grab instance profiles from the Euare account passed
+        """
+        get_profilelist_cmd = ["/usr/bin/euare-instanceprofilelistbypath",
+                               "--as-account", account, "--region",
+                               "admin@sosreport"]
+
+        try:
+            plist, v = subprocess.Popen(get_profilelist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error: " + account + " Profile List.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        profiles = []
+        sColon = re.compile('[:]')
+        for profile_info in plist.splitlines():
+            entry = sColon.split(profile_info)
+            profile_id = entry[5].strip().split("/")
+            profiles.append(profile_id[-1])
+        return profiles
+
+    def get_account_instprofile(self, account, profile, tmp_dir=''):
+        """
+        Grab the resources of instances profile in Euare account passed
+        """
+        self.collectExtOutput("/usr/bin/euare-instanceprofilegetattributes "
+                              + "--as-account "
+                              + account + " -s " + profile
+                              + " -r "
+                              + " --region admin@sosreport",
+                              suggest_filename="euare-instprofileattributes-"
+                              + account + "-" + profile)
 
     def cleanup(self, tmp_dir):
         """
@@ -905,6 +972,10 @@ class eucafrontend(sos.plugintools.PluginBase):
                     self.get_account_user_info(account, user)
                 for group in self.get_grouplist(account):
                     self.get_account_group_info(account, group)
+                for role in self.get_rolelist(account):
+                    self.get_account_role_info(account, role)
+                for instprofile in self.get_instprofile(account):
+                    self.get_account_instprofile(account, instprofile)
 
     def eucalyptus_autoscaling(self):
         self.collectExtOutput("/usr/bin/euscale-describe-auto-scaling-instances verbose \
