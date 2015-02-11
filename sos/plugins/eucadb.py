@@ -34,9 +34,10 @@ class eucadb(sos.plugintools.PluginBase):
         """
         Check postgres process using pgrep (eucalyptus-cloud controls it)
         """
-        postgres_pgrep_cmd = ["/usr/bin/pgrep", "postgres"]
+        pg_dirname = ''    # initialize
+        postgres_pgrep_cmd = ["/usr/bin/pgrep", "-lf", "bin/postgres -D /var/lib/eucalyptus/db/data"]
         try:
-            postgres_chk, unused_val = subprocess.Popen(
+            postgres_chk = subprocess.Popen(
                 postgres_pgrep_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE).communicate()
@@ -48,134 +49,79 @@ class eucadb(sos.plugintools.PluginBase):
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e)
 
-        if postgres_chk:
-            for proc in postgres_chk.splitlines():
-                if not proc:
-                    raise
-                else:
-                    self.addDiagnose("Postgres is running: " + proc + ".")
-        else:
-            self.addDiagnose("Error checking postgres process status")
-            print "### postgres/eucalyptus-cloud  doesn't seem to be running."
+        pg_proc = postgres_chk[0]     # postgres_chk will always be a 2-element list, where the last element is always ''
+        pg_proc = pg_proc.rstrip()    # get rid of the trailing newline, if any
+
+        if len( pg_proc ) == 0:
+            self.addDiagnose("Error: No extant master postgres process running")
             raise
-        return True
+            
+        else:
+            pg_proc_l = pg_proc.split('\n')
+            if len( pg_proc_l ) > 1:
+                self.addDiagnose("Error: More than one master postgres process running")
+                raise
+            else:
+                # If we get to here, then we have exactly one master postgres process.
+                # Now we need to determine the dirname of the running binary;
+                # we'll use the same dirname to craft the pg_dump command later.
+                pg_cmd = pg_proc_l[0].split()[1]
+                pg_dirname = os.path.dirname( pg_cmd )
+
+        return pg_dirname
 
     def setup(self):
+        db_datapath = "/var/lib/eucalyptus/db/data"
+        pg_dirname = self.check_postgres()
+        pg_dumpbin = pg_dirname + '/pg_dump'
         if (
-            os.path.isfile('/usr/pgsql-9.1/bin/pg_dump')
-            and self.check_postgres()
+            os.path.isfile( pg_dumpbin ) and
+            len(pg_dirname) > 0
         ):
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U root eucalyptus_auth",
-                suggest_filename="eucalyptus_auth.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U root eucalyptus_cloud",
-                suggest_filename="eucalyptus_cloud.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 \
-                 -U root eucalyptus_config",
-                suggest_filename="eucalyptus_config.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U root eucalyptus_dns",
-                suggest_filename="eucalyptus_dns.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U root database_events",
-                suggest_filename="database_events.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 \
-                 -U root eucalyptus_faults",
-                suggest_filename="eucalyptus_faults.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 \
-                 -U root eucalyptus_general",
-                suggest_filename="eucalyptus_general.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 \
-                 -U root eucalyptus_records",
-                suggest_filename="eucalyptus_records.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U root \
-                 --exclude-table=reporting_instance_usage_events \
-                 eucalyptus_reporting",
-                suggest_filename="eucalyptus_reporting.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U \
-                 root eucalyptus_storage",
-                suggest_filename="eucalyptus_storage.sql",
-                timeout=600
-            )
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                 /var/lib/eucalyptus/db/data -p 8777 -U \
-                 root eucalyptus_walrus",
-                suggest_filename="eucalyptus_walrus.sql",
-                timeout=600
-            )
-            if self.isInstalled("eucalyptus-enterprise-vmware-broker"):
+            dblistcmd_l = '/usr/bin/psql -h /var/lib/eucalyptus/db/data -p 8777 -l'.split()
+            dblist_out = subprocess.Popen(
+                dblistcmd_l,
+                stdout=subprocess.PIPE
+                ).communicate()[0].rstrip()
+            dblist_short = [x.split()[0] for x in dblist_out.split('\n')]   # get just the first column
+            db_l = [x for x in dblist_short if x[:4] == 'euca']             # remove all but euca* table names
+
+            # At this point, db_l is a list of only euca* table names. Let's add one more to the beginning:
+            db_l.insert(0, 'database_events')
+
+            for db in db_l:
+                dump_cmd = "%s -c -o -h %s -p 8777 -U root %s" % (pg_dumpbin, db_datapath, db)
+                dump_file = db + ".sql"
                 self.collectExtOutput(
-                    "/usr/pgsql-9.1/bin/pg_dump -c -o -h \
-                     /var/lib/eucalyptus/db/data -p 8777 -U \
-                     root eucalyptus_vmwarebroker",
-                    suggest_filename="eucalyptus_vmwarebroker.sql",
+                    dump_cmd,
+                    dump_file,
                     timeout=600
                 )
 
+        pg_sqlbin = pg_dirname + '/psql'
         if (
-            os.path.isfile('/usr/pgsql-9.1/bin/psql') and
-            self.check_postgres()
+            os.path.isfile( pg_sqlbin ) and
+            len(pg_dirname) > 0
         ):
-            self.collectExtOutput(
-                "/usr/pgsql-9.1/bin/psql -h /var/lib/eucalyptus/db/data \
-                 -p 8777 -U root -c \"SELECT \
+            select_cmd = '"SELECT \
                  pg_database.datname,pg_database_size(pg_database.datname),\
                  pg_size_pretty(pg_database_size(pg_database.datname)) \
-                 FROM pg_database ORDER BY pg_database_size DESC;\" \
-                 -d database_events",
+                 FROM pg_database ORDER BY pg_database_size DESC;"'
+            sql_cmd = "%s -h %s -p 8777 -U root -c %s -d %s" % \
+                (pg_sqlbin,
+                db_datapath,
+                select_cmd,
+                "database_events")
+            self.collectExtOutput(
+                sql_cmd,
                 suggest_filename="database_sizes.txt",
                 timeout=600
             )
 
-        if os.path.isfile('/var/lib/eucalyptus/db/data/pg_hba.conf'):
-            self.addCopySpec('/var/lib/eucalyptus/db/data/pg_hba.conf')
-
-        if os.path.isfile('/var/lib/eucalyptus/db/data/pg_hba.conf.org'):
-            self.addCopySpec('/var/lib/eucalyptus/db/data/pg_hba.conf.org')
-
-        if os.path.isfile('/var/lib/eucalyptus/db/data/pg_ident.conf'):
-            self.addCopySpec('/var/lib/eucalyptus/db/data/pg_ident.conf')
-
-        if os.path.isfile('/var/lib/eucalyptus/db/data/postgresql.conf'):
-            self.addCopySpec('/var/lib/eucalyptus/db/data/postgresql.conf')
-
-        if os.path.isfile('/var/lib/eucalyptus/db/data/postgresql.conf.org'):
-            self.addCopySpec('/var/lib/eucalyptus/db/data/postgresql.conf.org')
+        dbfiles_l = "pg_hba.conf pg_hba.conf.org pg_ident.conf postgresql.conf postgresql.conf.org".split()
+        for db_file in dbfiles_l:
+            db_fullfile = db_datapath + '/' + db_file
+            if os.path.isfile( db_fullfile ):
+                self.addCopySpec( db_fullfile )
 
         return
