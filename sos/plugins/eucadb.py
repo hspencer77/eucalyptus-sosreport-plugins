@@ -24,9 +24,10 @@ class eucadb(sos.plugintools.PluginBase):
     """
 
     def checkenabled(self):
-        if (self.isInstalled("postgresql91") and
-           self.isInstalled("postgresql91-server") and
-           self.isInstalled("eucalyptus-cloud")):
+        if (self.isInstalled("eucalyptus-cloud") and
+            ((self.isInstalled("postgresql91") and self.isInstalled("postgresql91-server")) or
+           (self.isInstalled("postgresql91") and self.isInstalled("postgresql91-server")))
+           ):
             return True
         return False
 
@@ -70,15 +71,27 @@ class eucadb(sos.plugintools.PluginBase):
 
         return pg_dirname
 
+    def dump_db_to_file(self, pg_dumpbin, db_datapath, db):
+        (pg_dumpbin, db_datapath, db) = (pg_dumpbin, db_datapath, db)
+        dump_cmd = "%s -c -o -h %s -p 8777 -U root %s" % (pg_dumpbin, db_datapath, db)
+        dump_file = db + ".sql"
+        self.collectExtOutput(
+            dump_cmd,
+            dump_file,
+            timeout=600
+        )
+
     def setup(self):
         db_datapath = "/var/lib/eucalyptus/db/data"
         pg_dirname = self.check_postgres()
         pg_dumpbin = pg_dirname + '/pg_dump'
+        pg_sqlbin =  pg_dirname + '/psql'
         if (
             os.path.isfile( pg_dumpbin ) and
             len(pg_dirname) > 0
         ):
-            dblistcmd_l = '/usr/bin/psql -h /var/lib/eucalyptus/db/data -p 8777 -l'.split()
+            dblistcmd = pg_sqlbin + ' -h ' + db_datapath + ' -p 8777 -l'
+            dblistcmd_l = dblistcmd.split()
             dblist_out = subprocess.Popen(
                 dblistcmd_l,
                 stdout=subprocess.PIPE
@@ -86,19 +99,42 @@ class eucadb(sos.plugintools.PluginBase):
             dblist_short = [x.split()[0] for x in dblist_out.split('\n')]   # get just the first column
             db_l = [x for x in dblist_short if x[:4] == 'euca']             # remove all but euca* table names
 
-            # At this point, db_l is a list of only euca* table names. Let's add one more to the beginning:
-            db_l.insert(0, 'database_events')
+            # Checking to see if we're using 'eucalyptus_shared', which is a sure sign we're on at least v4.1.
+            if 'eucalyptus_shared' in db_l:
+                # Eucalyptus 4.1 and later
+                # We need to get the schemas from 'eucalyptus_shared'.
+                select_cmd = "SELECT schema_name FROM information_schema.schemata;"
+                schemalistcmd = "%s -h %s -p 8777 -U root -c %s -d %s" % \
+                    (pg_sqlbin,
+                    db_datapath,
+                    'SELECT',
+                    "eucalyptus_shared")
+                schemalistcmd_l = schemalistcmd.split()         # turn command string into Popen-friendly format
+                select_idx = schemalistcmd_l.index('SELECT')    # locate the dummy 'SELECT' string
+                schemalistcmd_l[select_idx] = select_cmd        # replace 'SELECT' with actual query
+                schemalist_out = subprocess.Popen(
+                    schemalistcmd_l,
+                    stdout=subprocess.PIPE
+                    ).communicate()[0].rstrip()
+                schemalist_short = [x.split()[0] for x in schemalist_out.split('\n')]
+                schema_l = [x for x in schemalist_short if x[:4] == 'euca']
+                for schema in schema_l:
+                    sdump_cmd = "%s -c -o -h %s -p 8777 -U root eucalyptus_shared -n %s" % (pg_dumpbin, db_datapath, schema)
+                    sdump_file = schema + ".sql"
+                    self.collectExtOutput(
+                        sdump_cmd,
+                        sdump_file,
+                        timeout=600
+                    )
 
-            for db in db_l:
-                dump_cmd = "%s -c -o -h %s -p 8777 -U root %s" % (pg_dumpbin, db_datapath, db)
-                dump_file = db + ".sql"
-                self.collectExtOutput(
-                    dump_cmd,
-                    dump_file,
-                    timeout=600
-                )
+            else:
+                # Eucalyptus prior to v4.1
+                for db in db_l:
+                    self.dump_db_to_file(pg_dumpbin, db_datapath, db)
 
-        pg_sqlbin = pg_dirname + '/psql'
+            # At this point, db_l is a list of only euca* table names. Let's be sure to grab 'database_events', regardless of Eucalyptus version.
+            self.dump_db_to_file(pg_dumpbin, db_datapath, 'database_events')
+
         if (
             os.path.isfile( pg_sqlbin ) and
             len(pg_dirname) > 0
