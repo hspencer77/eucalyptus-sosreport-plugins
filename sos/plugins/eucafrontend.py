@@ -1076,9 +1076,6 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-keypairs verbose "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-kyprs-v")
-            self.collectExtOutput("/usr/bin/euca-describe-snapshots verbose "
-                                  + "--region admin@sosreport",
-                                  suggest_filename="euca-describe-snpshts-v")
             self.collectExtOutput("/usr/bin/euca-describe-volumes verbose "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-vols-v")
@@ -1112,6 +1109,17 @@ class eucafrontend(sos.plugintools.PluginBase):
                                       + "--region admin@sosreport",
                                       suggest_filename="euca-"
                                       + "describe-subnets-v")
+                self.collectExtOutput("/usr/bin/euca-describe-snapshots "
+                                      + " --all "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-describe"
+                                      + "-snpshts-v")
+            else:
+                self.collectExtOutput("/usr/bin/euca-describe-snapshots "
+                                      + " verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-describe"
+                                      + "-snpshts-v")
 
     def eucalyptus_iam(self, tmp_dir):
         self.addDiagnose("### Grabbing version of euca2ools ###")
