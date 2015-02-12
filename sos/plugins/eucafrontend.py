@@ -1061,12 +1061,6 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-images --all "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-images-all")
-            euca2ools_version = self.checkversion('euca2ools')
-            if re.match('^2.1+', euca2ools_version):
-                self.collectExtOutput("/usr/bin/eustore-describe-images -v "
-                                      + "--region admin@sosreport",
-                                      suggest_filename="eustore-"
-                                      + "describe-images")
             self.collectExtOutput("/usr/bin/euca-describe-regions "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-regions")
@@ -1082,6 +1076,9 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-tags "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-tags")
+            self.collectExtOutput("/usr/bin/euca-describe-conversion-tasks"
+                                  + " verbose --region admin@sosreport",
+                                  suggest_filename="euca-desc-con-tasks-v")
             euca_version = self.checkversion('eucalyptus')
             if re.match('^4+', euca_version):
                 self.get_instance_statuses()
