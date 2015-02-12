@@ -860,16 +860,28 @@ class eucafrontend(sos.plugintools.PluginBase):
         """
         Grab the resources of Cloudformation stack
         """
+        sColon = re.compile('[:]')
+        entry = sColon.split(stack)
+        stack_name = entry[5].strip().split("/")[1]
+        stack_id = entry[5].strip().split("/")[2]
         self.collectExtOutput("/usr/bin/euform-list-stack-resources "
                               + stack
                               + " --region admin@sosreport",
                               suggest_filename="euform-lst-stack-res-"
-                              + stack)
+                              + stack_name
+                              + "-" + stack_id)
         self.collectExtOutput("/usr/bin/euform-describe-stack-resources "
                               + "-n " + stack
                               + " --region admin@sosreport",
                               suggest_filename="euform-des-stack-res-"
-                              + stack)
+                              + stack_name
+                              + "-" + stack_id)
+        self.collectExtOutput("/usr/bin/euform-describe-stack-events "
+                              + stack
+                              + " --region admin@sosreport",
+                              suggest_filename="euform-des-stack-events-"
+                              + stack_name
+                              + "-" + stack_id)
 
     def cleanup(self, tmp_dir):
         """
