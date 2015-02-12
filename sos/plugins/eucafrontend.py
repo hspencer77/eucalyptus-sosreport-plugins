@@ -192,7 +192,7 @@ class eucafrontend(sos.plugintools.PluginBase):
                         account_id = var.replace('\'', '').strip()
                         return account_id
             if account_id is None:
-                self.addDiagnose("Error grabbing EC2_USER_ID " 
+                self.addDiagnose("Error grabbing EC2_USER_ID "
                                  + "from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
@@ -888,12 +888,12 @@ class eucafrontend(sos.plugintools.PluginBase):
         Grab the status of the instances on the cloud
         """
         get_instanceslist_cmd = ["/usr/bin/euca-describe-instances",
-                             "verbose",
-                             "--region",
-                             "admin@sosreport"]
+                                 "verbose",
+                                 "--region",
+                                 "admin@sosreport"]
 
         try:
-            instlist, v = subprocess.Popen(get_instanceslist_cmd,
+            ilist, v = subprocess.Popen(get_instanceslist_cmd,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE).communicate()
         except OSError, e:
@@ -904,15 +904,16 @@ class eucafrontend(sos.plugintools.PluginBase):
             else:
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e)
-        for inst_info in instlist.splitlines():
+        for inst_info in ilist.splitlines():
             if re.search('INSTANCE', inst_info):
                 inst_id = inst_info.split()[1]
                 self.collectExtOutput("/usr/bin/euca"
-                              + "-describe-instance-status "
-                              + inst_id
-                              + " --region admin@sosreport",
-                              suggest_filename="euca-des-inst-status-"
-                              + "-" + inst_id)
+                                      + "-describe-instance-status "
+                                      + inst_id
+                                      + " --region admin@sosreport",
+                                      suggest_filename="euca-des"
+                                      + "-inst-status-"
+                                      + "-" + inst_id)
 
     def cleanup(self, tmp_dir):
         """
@@ -1087,6 +1088,30 @@ class eucafrontend(sos.plugintools.PluginBase):
             euca_version = self.checkversion('eucalyptus')
             if re.match('^4+', euca_version):
                 self.get_instance_statuses()
+            if re.match('^3.2+', euca2ools_version):
+                self.collectExtOutput("/usr/bin/euca-describe-vpcs "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-vpcs-v")
+                self.collectExtOutput("/usr/bin/euca-describe-"
+                                      + "network-acls "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-network-acls-v")
+                self.collectExtOutput("/usr/bin/euca-describe-"
+                                      + "route-tables "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-route-tables-v")
+                self.collectExtOutput("/usr/bin/euca-describe-"
+                                      + "subnets "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-subnets-v")
 
     def eucalyptus_iam(self, tmp_dir):
         self.addDiagnose("### Grabbing version of euca2ools ###")
