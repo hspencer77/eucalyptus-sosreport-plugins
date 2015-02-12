@@ -20,14 +20,16 @@ import subprocess
 
 
 class eucadb(sos.plugintools.PluginBase):
+
     """Eucalyptus Cloud - PostgreSQL
     """
 
     def checkenabled(self):
-        if (self.isInstalled("eucalyptus-cloud") and
-            ((self.isInstalled("postgresql91") and self.isInstalled("postgresql91-server")) or
-           (self.isInstalled("postgresql92") and self.isInstalled("postgresql92-server")))
-           ):
+        if (self.isInstalled("eucalyptus-cloud")
+                and ((self.isInstalled("postgresql91")
+                      and self.isInstalled("postgresql91-server"))
+                     or (self.isInstalled("postgresql92")
+                         and self.isInstalled("postgresql92-server")))):
             return True
         return False
 
@@ -36,7 +38,10 @@ class eucadb(sos.plugintools.PluginBase):
         Check postgres process using pgrep (eucalyptus-cloud controls it)
         """
         pg_dirname = ''    # initialize
-        postgres_pgrep_cmd = ["/usr/bin/pgrep", "-lf", "bin/postgres -D /var/lib/eucalyptus/db/data"]
+        postgres_pgrep_cmd = [
+            "/usr/bin/pgrep",
+            "-lf",
+            "bin/postgres -D /var/lib/eucalyptus/db/data"]
         try:
             postgres_chk = subprocess.Popen(
                 postgres_pgrep_cmd,
@@ -50,30 +55,37 @@ class eucadb(sos.plugintools.PluginBase):
                 self.addDiagnose("Error: %s" % e)
                 raise OSError(e)
 
-        pg_proc = postgres_chk[0]     # postgres_chk will always be a 2-element list, where the last element is always ''
+        # postgres_chk will always be a 2-element list, where the last element
+        # is always ''
+        pg_proc = postgres_chk[0]
         pg_proc = pg_proc.rstrip()    # get rid of the trailing newline, if any
 
-        if len( pg_proc ) == 0:
-            self.addDiagnose("Error: No extant master postgres process running")
+        if len(pg_proc) == 0:
+            self.addDiagnose(
+                "Error: No extant master postgres process running")
             raise
-            
+
         else:
             pg_proc_l = pg_proc.split('\n')
-            if len( pg_proc_l ) > 1:
-                self.addDiagnose("Error: More than one master postgres process running")
+            if len(pg_proc_l) > 1:
+                self.addDiagnose(
+                    "Error: More than one master postgres process running")
                 raise
             else:
-                # If we get to here, then we have exactly one master postgres process.
+                # If we get to here, then we have exactly one
+                # master postgres process.
                 # Now we need to determine the dirname of the running binary;
-                # we'll use the same dirname to craft the pg_dump command later.
+                # we'll use the same dirname to craft the pg_dump command
+                # later.
                 pg_cmd = pg_proc_l[0].split()[1]
-                pg_dirname = os.path.dirname( pg_cmd )
+                pg_dirname = os.path.dirname(pg_cmd)
 
         return pg_dirname
 
     def dump_db_to_file(self, pg_dumpbin, db_datapath, db):
         (pg_dumpbin, db_datapath, db) = (pg_dumpbin, db_datapath, db)
-        dump_cmd = "%s -c -o -h %s -p 8777 -U root %s" % (pg_dumpbin, db_datapath, db)
+        dump_cmd = "%s -c -o -h %s -p 8777 -U root %s" % (
+            pg_dumpbin, db_datapath, db)
         dump_file = db + ".sql"
         self.collectExtOutput(
             dump_cmd,
@@ -85,9 +97,9 @@ class eucadb(sos.plugintools.PluginBase):
         db_datapath = "/var/lib/eucalyptus/db/data"
         pg_dirname = self.check_postgres()
         pg_dumpbin = pg_dirname + '/pg_dump'
-        pg_sqlbin =  pg_dirname + '/psql'
+        pg_sqlbin = pg_dirname + '/psql'
         if (
-            os.path.isfile( pg_dumpbin ) and
+            os.path.isfile(pg_dumpbin) and
             len(pg_dirname) > 0
         ):
             dblistcmd = pg_sqlbin + ' -h ' + db_datapath + ' -p 8777 -l'
@@ -95,31 +107,40 @@ class eucadb(sos.plugintools.PluginBase):
             dblist_out = subprocess.Popen(
                 dblistcmd_l,
                 stdout=subprocess.PIPE
-                ).communicate()[0].rstrip()
-            dblist_short = [x.split()[0] for x in dblist_out.split('\n')]   # get just the first column
-            db_l = [x for x in dblist_short if x[:4] == 'euca']             # remove all but euca* table names
+            ).communicate()[0].rstrip()
+            # get just the first column
+            dblist_short = [x.split()[0] for x in dblist_out.split('\n')]
+            # remove all but euca* table names
+            db_l = [x for x in dblist_short if x[:4] == 'euca']
 
-            # Checking to see if we're using 'eucalyptus_shared', which is a sure sign we're on at least v4.1.
+            # Checking to see if we're using 'eucalyptus_shared', which is a
+            # sure sign we're on at least v4.1.
             if 'eucalyptus_shared' in db_l:
                 # Eucalyptus 4.1 and later
                 # We need to get the schemas from 'eucalyptus_shared'.
-                select_cmd = "SELECT schema_name FROM information_schema.schemata;"
+                select_cmd = "SELECT schema_name FROM %s;" % \
+                    "information_schema.schemata"
                 schemalistcmd = "%s -h %s -p 8777 -U root -c %s -d %s" % \
                     (pg_sqlbin,
-                    db_datapath,
-                    'SELECT',
-                    "eucalyptus_shared")
-                schemalistcmd_l = schemalistcmd.split()         # turn command string into Popen-friendly format
-                select_idx = schemalistcmd_l.index('SELECT')    # locate the dummy 'SELECT' string
-                schemalistcmd_l[select_idx] = select_cmd        # replace 'SELECT' with actual query
+                     db_datapath,
+                     'SELECT',
+                     "eucalyptus_shared")
+                # turn command string into Popen-friendly format
+                schemalistcmd_l = schemalistcmd.split()
+                # locate the dummy 'SELECT' string
+                select_idx = schemalistcmd_l.index('SELECT')
+                # replace 'SELECT' with actual query
+                schemalistcmd_l[select_idx] = select_cmd
                 schemalist_out = subprocess.Popen(
                     schemalistcmd_l,
                     stdout=subprocess.PIPE
-                    ).communicate()[0].rstrip()
-                schemalist_short = [x.split()[0] for x in schemalist_out.split('\n')]
+                ).communicate()[0].rstrip()
+                schemalist_short = [x.split()[0]
+                                    for x in schemalist_out.split('\n')]
                 schema_l = [x for x in schemalist_short if x[:4] == 'euca']
                 for schema in schema_l:
-                    sdump_cmd = "%s -c -o -h %s -p 8777 -U root eucalyptus_shared -n %s" % (pg_dumpbin, db_datapath, schema)
+                    sdump_cmd = "%s -c -o -h %s -p 8777 -U root %s -n %s" % (
+                        pg_dumpbin, db_datapath, "eucalyptus_shared", schema)
                     sdump_file = schema + ".sql"
                     self.collectExtOutput(
                         sdump_cmd,
@@ -132,11 +153,12 @@ class eucadb(sos.plugintools.PluginBase):
                 for db in db_l:
                     self.dump_db_to_file(pg_dumpbin, db_datapath, db)
 
-            # At this point, db_l is a list of only euca* table names. Let's be sure to grab 'database_events', regardless of Eucalyptus version.
+            # At this point, db_l is a list of only euca* table names. Let's be
+            # sure to grab 'database_events', regardless of Eucalyptus version.
             self.dump_db_to_file(pg_dumpbin, db_datapath, 'database_events')
 
         if (
-            os.path.isfile( pg_sqlbin ) and
+            os.path.isfile(pg_sqlbin) and
             len(pg_dirname) > 0
         ):
             select_cmd = '"SELECT \
@@ -145,19 +167,23 @@ class eucadb(sos.plugintools.PluginBase):
                  FROM pg_database ORDER BY pg_database_size DESC;"'
             sql_cmd = "%s -h %s -p 8777 -U root -c %s -d %s" % \
                 (pg_sqlbin,
-                db_datapath,
-                select_cmd,
-                "database_events")
+                 db_datapath,
+                 select_cmd,
+                 "database_events")
             self.collectExtOutput(
                 sql_cmd,
                 suggest_filename="database_sizes.txt",
                 timeout=600
             )
 
-        dbfiles_l = "pg_hba.conf pg_hba.conf.org pg_ident.conf postgresql.conf postgresql.conf.org".split()
+        dbfiles_l = ["pg_hba.conf",
+                     "pg_hba.conf.org",
+                     "pg_ident.conf"
+                     "postgresql.conf",
+                     "postgresql.conf.org"]
         for db_file in dbfiles_l:
             db_fullfile = db_datapath + '/' + db_file
-            if os.path.isfile( db_fullfile ):
-                self.addCopySpec( db_fullfile )
+            if os.path.isfile(db_fullfile):
+                self.addCopySpec(db_fullfile)
 
         return
