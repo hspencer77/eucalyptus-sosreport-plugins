@@ -192,8 +192,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                         account_id = var.replace('\'', '').strip()
                         return account_id
             if account_id is None:
-                self.addDiagnose("Error grabbing EC2_USER_ID \
-                                 from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing EC2_USER_ID " 
+                                 + "from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
@@ -883,6 +883,37 @@ class eucafrontend(sos.plugintools.PluginBase):
                               + stack_name
                               + "-" + stack_id)
 
+    def get_instance_statuses(self):
+        """
+        Grab the status of the instances on the cloud
+        """
+        get_instanceslist_cmd = ["/usr/bin/euca-describe-instances",
+                             "verbose",
+                             "--region",
+                             "admin@sosreport"]
+
+        try:
+            instlist, v = subprocess.Popen(get_instanceslist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error obtaining list of Compute instances.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        for inst_info in instlist.splitlines():
+            if re.search('INSTANCE', inst_info):
+                inst_id = inst_info.split()[1]
+                self.collectExtOutput("/usr/bin/euca"
+                              + "-describe-instance-status "
+                              + inst_id
+                              + " --region admin@sosreport",
+                              suggest_filename="euca-des-inst-status-"
+                              + "-" + inst_id)
+
     def cleanup(self, tmp_dir):
         """
         Clean up temporary directory and sos-euca2ools.ini file.
@@ -1053,6 +1084,9 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-tags "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-tags")
+            euca_version = self.checkversion('eucalyptus')
+            if re.match('^4+', euca_version):
+                self.get_instance_statuses()
 
     def eucalyptus_iam(self, tmp_dir):
         self.addDiagnose("### Grabbing version of euca2ools ###")
