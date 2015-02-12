@@ -26,7 +26,7 @@ class eucadb(sos.plugintools.PluginBase):
     def checkenabled(self):
         if (self.isInstalled("eucalyptus-cloud") and
             ((self.isInstalled("postgresql91") and self.isInstalled("postgresql91-server")) or
-           (self.isInstalled("postgresql91") and self.isInstalled("postgresql91-server")))
+           (self.isInstalled("postgresql92") and self.isInstalled("postgresql92-server")))
            ):
             return True
         return False
