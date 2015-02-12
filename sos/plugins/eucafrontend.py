@@ -926,9 +926,36 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/sbin/euca-describe-vmware-brokers -U "
                                   + empyrean_url + creds_info,
                                   suggest_filename="euca-describe-vmware-brks")
-        self.collectExtOutput("/usr/sbin/euca-describe-walruses -U "
-                              + empyrean_url + creds_info,
-                              suggest_filename="euca-describe-walruses")
+        euca2ools_version = self.checkversion('euca2ools')
+        if re.match('^3+', euca2ools_version):
+            self.collectExtOutput("/usr/sbin/euca-describe-cloudwatch -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-cloudwatch")
+            self.collectExtOutput("/usr/sbin/euca-describe-compute -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-compute")
+            self.collectExtOutput("/usr/sbin/euca-describe-euare -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-euare")
+            self.collectExtOutput("/usr/sbin/euca-describe-loadbalancing -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe"
+                                  + "-loadbalancing")
+            self.collectExtOutput("/usr/sbin/euca-describe-object"
+                                  + "-storage-gateways -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-osgs")
+            self.collectExtOutput("/usr/sbin/euca-describe-tokens -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-tokens")
+            self.collectExtOutput("/usr/sbin/euca-describe-walrusbackends -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe"
+                                  + "-walrusbackends")
+        else:
+            self.collectExtOutput("/usr/sbin/euca-describe-walruses -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-walruses")
         self.collectExtOutput("/usr/bin/euca-version")
 
     def eucalyptus_ec2(self, tmp_dir):
@@ -959,9 +986,12 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-images --all "
                                   + creds_info,
                                   suggest_filename="euca-describe-imgs-all")
-            self.collectExtOutput("/usr/bin/eustore-describe-images -v "
-                                  + creds_info,
-                                  suggest_filename="eustore-describe-images")
+            euca2ools_version = self.checkversion('euca2ools')
+            if re.match('^2.1+', euca2ools_version):
+                self.collectExtOutput("/usr/bin/eustore-describe-images -v "
+                                      + creds_info,
+                                      suggest_filename="eustore-describe"
+                                      + "-images")
             self.collectExtOutput("/usr/bin/euca-describe-instances verbose "
                                   + creds_info,
                                   suggest_filename="euca-describe-inst-v")
@@ -999,9 +1029,12 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-images --all "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-images-all")
-            self.collectExtOutput("/usr/bin/eustore-describe-images -v "
-                                  + "--region admin@sosreport",
-                                  suggest_filename="eustore-describe-images")
+            euca2ools_version = self.checkversion('euca2ools')
+            if re.match('^2.1+', euca2ools_version):
+                self.collectExtOutput("/usr/bin/eustore-describe-images -v "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="eustore-"
+                                      + "describe-images")
             self.collectExtOutput("/usr/bin/euca-describe-regions "
                                   + "--region admin@sosreport",
                                   suggest_filename="euca-describe-regions")
@@ -1059,7 +1092,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                     self.get_account_instprofile(account, instprofile)
 
     def eucalyptus_autoscaling(self):
-        self.collectExtOutput("/usr/bin/euscale-describe-auto-scaling-instances"
+        self.collectExtOutput("/usr/bin/euscale-describe-auto"
+                              + "-scaling-instances"
                               + " verbose "
                               + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-a-s-insts-v")
@@ -1071,7 +1105,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                               + " verbose "
                               + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-l-cnfs-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-notification-configurations"
+        self.collectExtOutput("/usr/bin/euscale-describe-notification"
+                              + "-configurations"
                               + " verbose "
                               + "--region admin@sosreport",
                               suggest_filename="euscale-describe-not-cnfs-v")
