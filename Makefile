@@ -7,8 +7,9 @@ VERSION = $(shell echo `awk '/^Version:/ {print $$2}' eucalyptus-sos-plugins.spe
 MAJOR   = $(shell echo $(VERSION) | cut -f 1 -d '.')
 MINOR   = $(shell echo $(VERSION) | cut -f 2 -d '.')
 RELEASE = $(shell echo `awk '/^Release:/ {gsub(/\%.*/,""); print $2}' eucalyptus-sos-plugins.spec`)
-REPO = https://github.com/risaacson/eucalyptus-sosreport-plugins
+REPO = https://github.com/eucalyptus/eucalyptus-sosreport-plugins
 
+DESTDIR = /
 SUBDIRS = sos sos/plugins
 PYFILES = $(wildcard *.py)
 # OS X via brew
