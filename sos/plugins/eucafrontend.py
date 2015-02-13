@@ -250,8 +250,13 @@ class eucafrontend(sos.plugintools.PluginBase):
         """
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
+                euca_version = self.checkversion('eucalyptus')
+                if re.match('^4+', euca_version):
+                    search_string = "^export AWS_IAM_URL"
+                else:
+                    search_string = "^export EUARE"
                 for line in eucarc_file:
-                    if re.search("^export EUARE", line):
+                    if re.search(search_string, line):
                         name, var = line.partition("=")[::2]
                         iam_url = var.strip()
                         return iam_url
