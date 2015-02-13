@@ -43,4 +43,23 @@ class eucacore(sos.plugintools.PluginBase):
         if os.path.isfile('/sbin/iptables-save'):
             self.collectExtOutput("/sbin/iptables-save --counters",
                                   suggest_filename="iptables-save-counters")
+        if os.path.isfile('/sbin/ebtables-save'):
+            self.collectExtOutput("/sbin/ebtables-save --counters",
+                                  suggest_filename="ebtables-save-counters")
+        if os.path.isfile('/usr/sbin/ipset'):
+            self.collectExtOutput("/usr/sbin/ipset -s -o xml save",
+                                  suggest_filename="ipset-xml-save")
+        if os.path.isfile('/etc/pki/tls/certs/eucalyptus-enterprise.crt'):
+            self.collectExtOutput("openssl x509 -text -in "
+                                  + "/etc/pki/tls/certs/eucalyptus"
+                                  + "-enterprise.crt"
+                                  + " | grep -A 2 Validity",
+                                  suggest_filename="euca-enterprise-cert"
+                                  + "-validity")
+            self.collectExtOutput("openssl x509 -text -in "
+                                  + "/etc/pki/tls/certs/eucalyptus"
+                                  + "-enterprise.crt"
+                                  + " | grep -A 14 X509v3",
+                                  suggest_filename="euca-enterprise-cert"
+                                  + "-compliance")
         return

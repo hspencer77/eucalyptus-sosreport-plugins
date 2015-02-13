@@ -28,6 +28,11 @@ class eucanode(sos.plugintools.PluginBase):
         return False
 
     def setup(self):
+        conf = file('/etc/eucalyptus/eucalyptus.conf')
+        for line in conf:
+            if 'EDGE' in line:
+                self.addCopySpec("/var/lib/eucalyptus/*.xml")
+
         self.collectExtOutput("/usr/bin/virsh list",
                               suggest_filename="virsh-list")
 

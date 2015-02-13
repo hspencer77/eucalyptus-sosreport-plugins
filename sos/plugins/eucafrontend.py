@@ -134,18 +134,18 @@ class eucafrontend(sos.plugintools.PluginBase):
 
     def get_access_key(self, tmp_dir):
         """
-        Grab EC2_ACCESS_KEY from unzip admin/eucalyptus credentials
+        Grab AWS_ACCESS_KEY_ID from unzip admin/eucalyptus credentials
         """
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
-                    if re.search("^export EC2_ACCESS_KEY", line):
+                    if re.search("^export AWS_ACCESS_KEY", line):
                         name, var = line.partition("=")[::2]
                         access_key = var.replace('\'', '').strip()
                         return access_key
             if access_key is None:
-                self.addDiagnose("Error grabbing EC2_ACCESS_KEY \
-                                 from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing AWS_ACCESS_KEY_ID"
+                                 + " from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
@@ -158,18 +158,18 @@ class eucafrontend(sos.plugintools.PluginBase):
 
     def get_secret_key(self, tmp_dir):
         """
-        Grab EC2_SECRET_KEY from unzip admin/eucalyptus credentials
+        Grab AWS_SECRET_ACCESS_KEY from unzip admin/eucalyptus credentials
         """
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
-                    if re.search("^export EC2_SECRET_KEY", line):
+                    if re.search("^export AWS_SECRET", line):
                         name, var = line.partition("=")[::2]
                         secret_key = var.replace('\'', '').strip()
                         return secret_key
             if secret_key is None:
-                self.addDiagnose("Error grabbing EC2_SECRET_KEY \
-                                 from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing AWS_SECRET_ACCESS_KEY"
+                                 + " from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
@@ -192,8 +192,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                         account_id = var.replace('\'', '').strip()
                         return account_id
             if account_id is None:
-                self.addDiagnose("Error grabbing EC2_USER_ID \
-                                 from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing EC2_USER_ID "
+                                 + "from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
@@ -215,10 +215,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         s3_url = var.strip()
                         return s3_url
-            if s3_url is None:
-                self.addDiagnose("Error grabbing S3_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -239,10 +235,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         ec2_url = var.strip()
                         return ec2_url
-            if ec2_url is None:
-                self.addDiagnose("Error grabbing EC2_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -258,15 +250,16 @@ class eucafrontend(sos.plugintools.PluginBase):
         """
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
+                euca_version = self.checkversion('eucalyptus')
+                if re.match('^4+', euca_version):
+                    search_string = "^export AWS_IAM_URL"
+                else:
+                    search_string = "^export EUARE"
                 for line in eucarc_file:
-                    if re.search("^export EUARE", line):
+                    if re.search(search_string, line):
                         name, var = line.partition("=")[::2]
                         iam_url = var.strip()
                         return iam_url
-            if iam_url is None:
-                self.addDiagnose("Error grabbing EUARE_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -287,10 +280,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         autoscale_url = var.strip()
                         return autoscale_url
-            if autoscale_url is None:
-                self.addDiagnose("Error grabbing AWS_AUTO_SCALING_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -311,10 +300,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         elb_url = var.strip()
                         return elb_url
-            if elb_url is None:
-                self.addDiagnose("Error grabbing AWS_ELB_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -335,10 +320,6 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         cloudwatch_url = var.strip()
                         return cloudwatch_url
-            if cloudwatch_url is None:
-                self.addDiagnose("Error grabbing AWS_CLOUDWATCH_URL \
-                                 from " + tmp_dir + "/eucarc")
-                raise
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -359,10 +340,26 @@ class eucafrontend(sos.plugintools.PluginBase):
                         name, var = line.partition("=")[::2]
                         sts_url = var.strip()
                         return sts_url
-            if sts_url is None:
-                self.addDiagnose("Error grabbing STS_URL from "
-                                 + tmp_dir + "/eucarc")
-                raise
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error opening " + tmp_dir + "/eucarc")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+
+    def get_cloudformation_url(self, tmp_dir):
+        """
+        Grab AWS_CLOUDFORMATION_URL from unzip admin/eucalyptus credentials
+        """
+        try:
+            with open(tmp_dir + "/eucarc") as eucarc_file:
+                for line in eucarc_file:
+                    if re.search("^export AWS_CLOUDFORMATION", line):
+                        name, var = line.partition("=")[::2]
+                        cloudformation_url = var.strip()
+                        return cloudformation_url
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
@@ -378,12 +375,13 @@ class eucafrontend(sos.plugintools.PluginBase):
         information in admin/eucalyptus credentials file (eucarc)
         """
         try:
-            os.mkdir("/etc/euca2ools/conf.d")
+            if not os.path.isdir("/etc/euca2ools/conf.d"):
+                os.mkdir("/etc/euca2ools/conf.d")
         except OSError, e:
             error_string = '%s' % e
             if 'No such' in error_string:
-                self.addDiagnose("Error creating \
-                                 /etc/euca2ools/conf.d directory")
+                self.addDiagnose("Error creating "
+                                 + "/etc/euca2ools/conf.d directory")
                 raise OSError(e)
             elif 'File exist' in error_string:
                 self.addDiagnose("WARN: %s" % e)
@@ -401,6 +399,7 @@ class eucafrontend(sos.plugintools.PluginBase):
         elb_url = self.get_elb_url(tmp_dir)
         cloudwatch_url = self.get_cloudwatch_url(tmp_dir)
         sts_url = self.get_sts_url(tmp_dir)
+        cloudformation_url = self.get_cloudformation_url(tmp_dir)
         euca2ools_conf = open('/etc/euca2ools/conf.d/sos-euca2ools.ini', 'w')
         try:
             euca2ools_conf.write("[user admin]\n")
@@ -418,6 +417,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                  + cloudwatch_url + "\n")
             euca2ools_conf.write("s3-url = " + s3_url + "\n")
             euca2ools_conf.write("sts-url = " + sts_url + "\n")
+            euca2ools_conf.write("cloudformation-url = " +
+                                 cloudformation_url + "\n")
             euca2ools_conf.write("eustore-url = http://emis.eucalyptus.com/\n")
             euca2ools_conf.write("configuration-url = " +
                                  "http://127.0.0.1:8773/services"
@@ -470,7 +471,7 @@ class eucafrontend(sos.plugintools.PluginBase):
         accounts = []
         for account_info in actlist.splitlines():
             entry = re.split(r'\t', account_info)
-            accounts.append("\"" + entry[0] + "\"")
+            accounts.append(re.escape(entry[0]))
         return accounts
 
     def get_account_info(self, account, tmp_dir=''):
@@ -502,8 +503,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   suggest_filename="euare-grouplistbypath-"
                                   + account)
         else:
-            self.collectExtOutput("/usr/bin/euare-accountaliaslist \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-accountaliaslist "
+                                  + "--as-account "
                                   + account + " --region admin@sosreport",
                                   suggest_filename="euare-accountaliaslist-"
                                   + account)
@@ -515,10 +516,20 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + account + " --region admin@sosreport",
                                   suggest_filename="euare-userlistbypath-"
                                   + account)
-            self.collectExtOutput("/usr/bin/euare-grouplistbypath \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-grouplistbypath "
+                                  + "--as-account "
                                   + account + " --region admin@sosreport",
                                   suggest_filename="euare-grouplistbypath-"
+                                  + account)
+            self.collectExtOutput("/usr/bin/euare-rolelistbypath "
+                                  + "--as-account "
+                                  + account + " --region admin@sosreport",
+                                  suggest_filename="euare-rolelistbypath-"
+                                  + account)
+            self.collectExtOutput("/usr/bin/euare-instanceprofilelistbypath "
+                                  + "--as-account "
+                                  + account + " --region admin@sosreport",
+                                  suggest_filename="euare-instprflstbypath-"
                                   + account)
 
     def get_userlist(self, account, tmp_dir=''):
@@ -618,8 +629,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-usergetinfo-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-usergetloginprofile \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-usergetloginprofile "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-usergetloginprofile-"
@@ -629,14 +640,14 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-userlistcerts-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-usergetattributes \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-usergetattributes "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " --show-extra --region admin@sosreport",
                                   suggest_filename="euare-usergetattributes-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-userlistgroups \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-userlistgroups "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-userlistgroups-"
@@ -646,8 +657,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   + " --region admin@sosreport",
                                   suggest_filename="euare-userlistkeys-"
                                   + account + "-" + user)
-            self.collectExtOutput("/usr/bin/euare-userlistpolicies \
-                                  --as-account "
+            self.collectExtOutput("/usr/bin/euare-userlistpolicies "
+                                  + "--as-account "
                                   + account + " -u " + user
                                   + " -v --region admin@sosreport",
                                   suggest_filename="euare-userlistpolicies-"
@@ -737,6 +748,178 @@ class eucafrontend(sos.plugintools.PluginBase):
                                   suggest_filename="euare-grouplistpolicies-"
                                   + account + "-" + group)
 
+    def get_rolelist(self, account, tmp_dir=''):
+        """
+        Grab the roles from the Euare account passed in and return the list
+        """
+        get_rolelist_cmd = ["/usr/bin/euare-rolelistbypath",
+                            "--as-account", account, "--region",
+                            "admin@sosreport"]
+
+        try:
+            rlist, v = subprocess.Popen(get_rolelist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error: " + account + " Role List.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        roles = []
+        sColon = re.compile('[:]')
+        for role_info in rlist.splitlines():
+            entry = sColon.split(role_info)
+            role_id = entry[5].strip().split("/")
+            roles.append(role_id[-1])
+        return roles
+
+    def get_account_role_info(self, account, role, tmp_dir=''):
+        """
+        Grab the resources of the role in the Euare account passed in
+        """
+        self.collectExtOutput("/usr/bin/euare-rolelistpolicies --as-account "
+                              + account + " -r " + role
+                              + " --region admin@sosreport",
+                              suggest_filename="euare-rolelistpolicies-"
+                              + account + "-" + role)
+        self.collectExtOutput("/usr/bin/euare-instanceprofilelistforrole "
+                              + "--as-account "
+                              + account + " -r " + role
+                              + " --region admin@sosreport",
+                              suggest_filename="euare-instprofilelistforrole-"
+                              + account + "-" + role)
+
+    def get_instprofile(self, account, tmp_dir=''):
+        """
+        Grab instance profiles from the Euare account passed
+        """
+        get_profilelist_cmd = ["/usr/bin/euare-instanceprofilelistbypath",
+                               "--as-account", account, "--region",
+                               "admin@sosreport"]
+
+        try:
+            plist, v = subprocess.Popen(get_profilelist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error: " + account + " Profile List.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        profiles = []
+        sColon = re.compile('[:]')
+        for profile_info in plist.splitlines():
+            entry = sColon.split(profile_info)
+            profile_id = entry[5].strip().split("/")
+            profiles.append(profile_id[-1])
+        return profiles
+
+    def get_account_instprofile(self, account, profile, tmp_dir=''):
+        """
+        Grab the resources of instances profile in Euare account passed
+        """
+        self.collectExtOutput("/usr/bin/euare-instanceprofilegetattributes "
+                              + "--as-account "
+                              + account + " -s " + profile
+                              + " -r "
+                              + " --region admin@sosreport",
+                              suggest_filename="euare-instprofileattributes-"
+                              + account + "-" + profile)
+
+    def get_stacks(self):
+        """
+        Grab the Cloudformation Stacks
+        """
+        get_stacklist_cmd = ["/usr/bin/euform-describe-stacks",
+                             "verbose",
+                             "--show-long",
+                             "--region",
+                             "admin@sosreport"]
+
+        try:
+            slist, v = subprocess.Popen(get_stacklist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error obtaining Cloudformation Stacks.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        stacks = []
+        for stack_info in slist.splitlines():
+            if re.search('arn', stack_info):
+                stack_id = "".join(stack_info.split())
+                stacks.append(stack_id)
+        return stacks
+
+    def get_cloudformation_resources(self, stack):
+        """
+        Grab the resources of Cloudformation stack
+        """
+        sColon = re.compile('[:]')
+        entry = sColon.split(stack)
+        stack_name = entry[5].strip().split("/")[1]
+        stack_id = entry[5].strip().split("/")[2]
+        self.collectExtOutput("/usr/bin/euform-list-stack-resources "
+                              + stack
+                              + " --region admin@sosreport",
+                              suggest_filename="euform-lst-stack-res-"
+                              + stack_name
+                              + "-" + stack_id)
+        self.collectExtOutput("/usr/bin/euform-describe-stack-resources "
+                              + "-n " + stack
+                              + " --region admin@sosreport",
+                              suggest_filename="euform-des-stack-res-"
+                              + stack_name
+                              + "-" + stack_id)
+        self.collectExtOutput("/usr/bin/euform-describe-stack-events "
+                              + stack
+                              + " --region admin@sosreport",
+                              suggest_filename="euform-des-stack-events-"
+                              + stack_name
+                              + "-" + stack_id)
+
+    def get_instance_statuses(self):
+        """
+        Grab the status of the instances on the cloud
+        """
+        get_instanceslist_cmd = ["/usr/bin/euca-describe-instances",
+                                 "verbose",
+                                 "--region",
+                                 "admin@sosreport"]
+
+        try:
+            ilist, v = subprocess.Popen(get_instanceslist_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE).communicate()
+        except OSError, e:
+            error_string = '%s' % e
+            if 'No such' in error_string:
+                self.addDiagnose("Error obtaining list of Compute instances.")
+                raise OSError(e)
+            else:
+                self.addDiagnose("Error: %s" % e)
+                raise OSError(e)
+        for inst_info in ilist.splitlines():
+            if re.search('INSTANCE', inst_info):
+                inst_id = inst_info.split()[1]
+                self.collectExtOutput("/usr/bin/euca"
+                                      + "-describe-instance-status "
+                                      + inst_id
+                                      + " --region admin@sosreport",
+                                      suggest_filename="euca-des"
+                                      + "-inst-status-"
+                                      + "-" + inst_id)
+
     def cleanup(self, tmp_dir):
         """
         Clean up temporary directory and sos-euca2ools.ini file.
@@ -780,9 +963,36 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/sbin/euca-describe-vmware-brokers -U "
                                   + empyrean_url + creds_info,
                                   suggest_filename="euca-describe-vmware-brks")
-        self.collectExtOutput("/usr/sbin/euca-describe-walruses -U "
-                              + empyrean_url + creds_info,
-                              suggest_filename="euca-describe-walruses")
+        euca2ools_version = self.checkversion('euca2ools')
+        if re.match('^3+', euca2ools_version):
+            self.collectExtOutput("/usr/sbin/euca-describe-cloudwatch -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-cloudwatch")
+            self.collectExtOutput("/usr/sbin/euca-describe-compute -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-compute")
+            self.collectExtOutput("/usr/sbin/euca-describe-euare -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-euare")
+            self.collectExtOutput("/usr/sbin/euca-describe-loadbalancing -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe"
+                                  + "-loadbalancing")
+            self.collectExtOutput("/usr/sbin/euca-describe-object"
+                                  + "-storage-gateways -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-osgs")
+            self.collectExtOutput("/usr/sbin/euca-describe-tokens -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-tokens")
+            self.collectExtOutput("/usr/sbin/euca-describe-walrusbackends -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe"
+                                  + "-walrusbackends")
+        else:
+            self.collectExtOutput("/usr/sbin/euca-describe-walruses -U "
+                                  + empyrean_url + creds_info,
+                                  suggest_filename="euca-describe-walruses")
         self.collectExtOutput("/usr/bin/euca-version")
 
     def eucalyptus_ec2(self, tmp_dir):
@@ -800,12 +1010,12 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-regions "
                                   + creds_info,
                                   suggest_filename="euca-describe-regions")
-            self.collectExtOutput("/usr/bin/euca-describe-availability-zones \
-                                  verbose "
+            self.collectExtOutput("/usr/bin/euca-describe-availability-zones "
+                                  + "verbose "
                                   + creds_info,
                                   suggest_filename="euca-describe-a-z-v")
-            self.collectExtOutput("/usr/bin/euca-describe-instance-types \
-                                  --show-capacity --by-zone " + creds_info,
+            self.collectExtOutput("/usr/bin/euca-describe-instance-types "
+                                  + "--show-capacity --by-zone " + creds_info,
                                   suggest_filename="euca-describe-inst-types")
             self.collectExtOutput("/usr/bin/euca-describe-groups verbose "
                                   + creds_info,
@@ -813,9 +1023,12 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.collectExtOutput("/usr/bin/euca-describe-images --all "
                                   + creds_info,
                                   suggest_filename="euca-describe-imgs-all")
-            self.collectExtOutput("/usr/bin/eustore-describe-images -v "
-                                  + creds_info,
-                                  suggest_filename="eustore-describe-images")
+            euca2ools_version = self.checkversion('euca2ools')
+            if re.match('^2.1+', euca2ools_version):
+                self.collectExtOutput("/usr/bin/eustore-describe-images -v "
+                                      + creds_info,
+                                      suggest_filename="eustore-describe"
+                                      + "-images")
             self.collectExtOutput("/usr/bin/euca-describe-instances verbose "
                                   + creds_info,
                                   suggest_filename="euca-describe-inst-v")
@@ -836,42 +1049,79 @@ class eucafrontend(sos.plugintools.PluginBase):
                 self.addCopySpec("/tmp/eucacreds")
 
             self.addDiagnose("### Grabbing Cloud Resource Data ###")
-            self.collectExtOutput("/usr/bin/euca-describe-addresses verbose \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-addresses verbose "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-addrs-v")
-            self.collectExtOutput("/usr/bin/euca-describe-availability-zones verbose \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-availability-zones "
+                                  + "verbose "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-a-z-v")
-            self.collectExtOutput("/usr/bin/euca-describe-instance-types --show-capacity \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-instance-types"
+                                  + " --show-capacity --by-zone "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-inst-types")
-            self.collectExtOutput("/usr/bin/euca-describe-groups verbose \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-groups verbose "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-grps-v")
-            self.collectExtOutput("/usr/bin/euca-describe-images --all \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-images --all "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-images-all")
-            self.collectExtOutput("/usr/bin/eustore-describe-images -v \
-                                  --region admin@sosreport",
-                                  suggest_filename="eustore-describe-images")
-            self.collectExtOutput("/usr/bin/euca-describe-regions \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-regions "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-regions")
-            self.collectExtOutput("/usr/bin/euca-describe-instances verbose \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-instances verbose "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-insts-v")
-            self.collectExtOutput("/usr/bin/euca-describe-keypairs verbose \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-keypairs verbose "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-kyprs-v")
-            self.collectExtOutput("/usr/bin/euca-describe-snapshots verbose \
-                                  --region admin@sosreport",
-                                  suggest_filename="euca-describe-snpshts-v")
-            self.collectExtOutput("/usr/bin/euca-describe-volumes verbose \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-volumes verbose "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-vols-v")
-            self.collectExtOutput("/usr/bin/euca-describe-tags \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euca-describe-tags "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euca-describe-tags")
+            self.collectExtOutput("/usr/bin/euca-describe-conversion-tasks"
+                                  + " verbose --region admin@sosreport",
+                                  suggest_filename="euca-desc-con-tasks-v")
+            euca_version = self.checkversion('eucalyptus')
+            if re.match('^4+', euca_version):
+                self.get_instance_statuses()
+            if re.match('^3.2+', euca2ools_version):
+                self.collectExtOutput("/usr/bin/euca-describe-vpcs "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-vpcs-v")
+                self.collectExtOutput("/usr/bin/euca-describe-"
+                                      + "network-acls "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-network-acls-v")
+                self.collectExtOutput("/usr/bin/euca-describe-"
+                                      + "route-tables "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-route-tables-v")
+                self.collectExtOutput("/usr/bin/euca-describe-"
+                                      + "subnets "
+                                      + "verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-"
+                                      + "describe-subnets-v")
+                self.collectExtOutput("/usr/bin/euca-describe-snapshots "
+                                      + " --all "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-describe"
+                                      + "-snpshts-v")
+            else:
+                self.collectExtOutput("/usr/bin/euca-describe-snapshots "
+                                      + " verbose "
+                                      + "--region admin@sosreport",
+                                      suggest_filename="euca-describe"
+                                      + "-snpshts-v")
 
     def eucalyptus_iam(self, tmp_dir):
         self.addDiagnose("### Grabbing version of euca2ools ###")
@@ -896,8 +1146,8 @@ class eucafrontend(sos.plugintools.PluginBase):
                 self.addCopySpec("/etc/euca2ools")
                 self.addCopySpec("/tmp/eucacreds")
 
-            self.collectExtOutput("/usr/bin/euare-accountlist \
-                                  --region admin@sosreport",
+            self.collectExtOutput("/usr/bin/euare-accountlist "
+                                  + "--region admin@sosreport",
                                   suggest_filename="euare-accountlist")
             for account in self.get_accountlist():
                 self.get_account_info(account)
@@ -905,49 +1155,72 @@ class eucafrontend(sos.plugintools.PluginBase):
                     self.get_account_user_info(account, user)
                 for group in self.get_grouplist(account):
                     self.get_account_group_info(account, group)
+                for role in self.get_rolelist(account):
+                    self.get_account_role_info(account, role)
+                for instprofile in self.get_instprofile(account):
+                    self.get_account_instprofile(account, instprofile)
 
     def eucalyptus_autoscaling(self):
-        self.collectExtOutput("/usr/bin/euscale-describe-auto-scaling-instances verbose \
-                              --show-long --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-auto"
+                              + "-scaling-instances"
+                              + " verbose "
+                              + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-a-s-insts-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-auto-scaling-groups verbose \
-                              --show-long --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-auto-scaling-groups"
+                              + " verbose "
+                              + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-a-s-grps-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-launch-configs verbose \
-                              --show-long --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-launch-configs"
+                              + " verbose "
+                              + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-l-cnfs-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-notification-configurations verbose \
-                              --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-notification"
+                              + "-configurations"
+                              + " verbose "
+                              + "--region admin@sosreport",
                               suggest_filename="euscale-describe-not-cnfs-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-policies verbose --show-long \
-                              --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-policies"
+                              + " verbose --show-long "
+                              + "--region admin@sosreport",
                               suggest_filename="euscale-describe-pols-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-scaling-activities verbose \
-                              --show-long --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-scaling-activities"
+                              + " verbose "
+                              + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-s-a-v")
-        self.collectExtOutput("/usr/bin/euscale-describe-scheduled-actions verbose \
-                              --show-long --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euscale-describe-scheduled-actions"
+                              + " verbose "
+                              + "--show-long --region admin@sosreport",
                               suggest_filename="euscale-describe-sch-a-v")
 
     def eucalyptus_elb(self):
-        self.collectExtOutput("/usr/bin/eulb-describe-lb-policies verbose \
-                              --show-long --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/eulb-describe-lb-policies verbose "
+                              + "--show-long --region admin@sosreport",
                               suggest_filename="eulb-describe-lb-pols-v")
-        self.collectExtOutput("/usr/bin/eulb-describe-lb-policy-types verbose --show-long \
-                              --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/eulb-describe-lb-policy-types"
+                              + " verbose --show-long "
+                              + "--region admin@sosreport",
                               suggest_filename="eulb-describe-lb-pol-types-v")
-        self.collectExtOutput("/usr/bin/eulb-describe-lbs verbose --show-long \
-                              --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/eulb-describe-lbs verbose"
+                              + " verbose --show-long "
+                              + "--region admin@sosreport",
                               suggest_filename="eulb-describe-lbs-v")
-        return
 
     def eucalyptus_cloudwatch(self):
-        self.collectExtOutput("/usr/bin/euwatch-describe-alarms verbose --show-long \
-                              --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euwatch-describe-alarms"
+                              + " verbose --show-long "
+                              + "--region admin@sosreport",
                               suggest_filename="euwatch-describe-alrms-v")
-        self.collectExtOutput("/usr/bin/euwatch-describe-alarm-history verbose --show-long \
-                              --region admin@sosreport",
+        self.collectExtOutput("/usr/bin/euwatch-describe-alarm-history"
+                              + " verbose --show-long "
+                              + "--region admin@sosreport",
                               suggest_filename="euwatch-describe-alrm-hist-v")
+
+    def eucalyptus_cloudformation(self):
+        self.collectExtOutput("/usr/bin/euform-describe-stacks verbose "
+                              + "--show-long --region admin@sosreport",
+                              suggest_filename="euform-describe-stacks-v")
+        for stack in self.get_stacks():
+            self.get_cloudformation_resources(stack)
 
     def setup(self):
         self.addDiagnose("### Check eucalyptus-cloud is running ###")
@@ -968,6 +1241,8 @@ class eucafrontend(sos.plugintools.PluginBase):
             self.eucalyptus_elb()
             self.addDiagnose("### Grab CloudWatch Service Information ###")
             self.eucalyptus_cloudwatch()
+            self.addDiagnose("### Grab CloudFormation Service Information ###")
+            self.eucalyptus_cloudformation()
 
         self.cleanup(tmp_dir)
         return
