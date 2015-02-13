@@ -17,7 +17,6 @@
 import sos.plugintools
 import subprocess
 import csv
-import fileinput
 
 
 class eucanode(sos.plugintools.PluginBase):

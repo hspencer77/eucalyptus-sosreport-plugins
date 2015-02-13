@@ -134,18 +134,18 @@ class eucafrontend(sos.plugintools.PluginBase):
 
     def get_access_key(self, tmp_dir):
         """
-        Grab EC2_ACCESS_KEY from unzip admin/eucalyptus credentials
+        Grab AWS_ACCESS_KEY_ID from unzip admin/eucalyptus credentials
         """
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
-                    if re.search("^export EC2_ACCESS_KEY", line):
+                    if re.search("^export AWS_ACCESS_KEY", line):
                         name, var = line.partition("=")[::2]
                         access_key = var.replace('\'', '').strip()
                         return access_key
             if access_key is None:
-                self.addDiagnose("Error grabbing EC2_ACCESS_KEY \
-                                 from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing AWS_ACCESS_KEY_ID"
+                                 + " from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
@@ -158,18 +158,18 @@ class eucafrontend(sos.plugintools.PluginBase):
 
     def get_secret_key(self, tmp_dir):
         """
-        Grab EC2_SECRET_KEY from unzip admin/eucalyptus credentials
+        Grab AWS_SECRET_ACCESS_KEY from unzip admin/eucalyptus credentials
         """
         try:
             with open(tmp_dir + "/eucarc") as eucarc_file:
                 for line in eucarc_file:
-                    if re.search("^export EC2_SECRET_KEY", line):
+                    if re.search("^export AWS_SECRET", line):
                         name, var = line.partition("=")[::2]
                         secret_key = var.replace('\'', '').strip()
                         return secret_key
             if secret_key is None:
-                self.addDiagnose("Error grabbing EC2_SECRET_KEY \
-                                 from " + tmp_dir + "/eucarc")
+                self.addDiagnose("Error grabbing AWS_SECRET_ACCESS_KEY"
+                                 + " from " + tmp_dir + "/eucarc")
                 raise
         except OSError, e:
             error_string = '%s' % e
