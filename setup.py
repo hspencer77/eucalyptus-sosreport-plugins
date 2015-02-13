@@ -25,7 +25,7 @@
 
 from setuptools import setup
 
-setup(name='eucalyptus-sosreports-plugins',
+setup(name='eucalyptus-sos-plugins',
       version='0.1.7',
       description='Eucalyptus SOS plugins',
       long_description='Eucalyptus SOS plugins',
