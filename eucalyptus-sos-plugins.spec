@@ -1,17 +1,20 @@
-%{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%{!?__python2: %global __python2 /usr/bin/python2}
+%{!?python2_sitelib: %global python2_sitelib %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
-Summary: A plugin to sosreport to collect data about Eucalyptus clouds
-Name: eucalyptus-sos-plugins
-Version: 0.1.7
-Release: 0%{?dist}
-Source0: %{name}-%{version}.tar.gz
-Group: Applications/System
-License: GPLv2+
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildArch: x86_64
-Url: http://github.com/eucalyptus/eucalyptus-sosreport-plugins
-BuildRequires: python-devel
-Requires: sos
+Summary:       A plugin to sosreport to collect data about Eucalyptus clouds
+Name:          eucalyptus-sos-plugins
+Version:       0.1.7
+Release:       1%{?dist}
+License:       GPLv2+
+Group:         Applications/System
+Url:           http://github.com/eucalyptus/eucalyptus-sosreport-plugins
+
+BuildRequires: python2-devel
+BuildRequires: python-setuptools
+Requires:      sos
+
+Source0:       %{name}-%{version}.tar.gz
+
 
 %description
 Eucalyptus is open source software for building AWS-compatible
@@ -20,20 +23,24 @@ gathers information about system hardware and configuration.
 This package contains plugins for sosreport to gather
 information on Eucalyptus clouds.
 
+
 %prep
 %setup -q
 
+
 %build
+%{__python2} setup.py build
+
 
 %install
-install -m 0755 -d $RPM_BUILD_ROOT/%{python_sitelib}/sos/plugins
-install -m 0755 sos/plugins/*.py $RPM_BUILD_ROOT/%{python_sitelib}/sos/plugins
+%{__python2} setup.py install --skip-build --root $RPM_BUILD_ROOT
 
-%clean
-rm -rf ${RPM_BUILD_ROOT}
 
 %files
 %defattr(-,root,root,-)
-%{python_sitelib}/*
+%{python_sitelib}/sos/plugins/*
+
 
 %changelog
+* Fri Feb 13 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7-1
+- Revamped build process
