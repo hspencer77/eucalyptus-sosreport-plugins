@@ -8,6 +8,7 @@ Release:       1%{?dist}
 License:       GPLv2+
 Group:         Applications/System
 Url:           http://github.com/eucalyptus/eucalyptus-sosreport-plugins
+BuildArch:     noarch
 
 BuildRequires: python2-devel
 BuildRequires: python-setuptools
@@ -39,8 +40,11 @@ information on Eucalyptus clouds.
 %files
 %defattr(-,root,root,-)
 %{python_sitelib}/sos/plugins/*
+%{python_sitelib}/*.egg-info
 
 
 %changelog
 * Fri Feb 13 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7-1
 - Revamped build process
+- Switched to noarch
+- Add *.egg-info to files list
