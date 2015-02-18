@@ -20,6 +20,7 @@ import glob
 
 
 class eucacore(sos.plugintools.PluginBase):
+
     """Eucalyptus Cloud - Core
     """
 
@@ -62,4 +63,12 @@ class eucacore(sos.plugintools.PluginBase):
                                   + " | grep -A 14 X509v3",
                                   suggest_filename="euca-enterprise-cert"
                                   + "-compliance")
+        # check /tmp dir for sane owner/group/mode
+        # mode '1777' also checks for sticky bit
+        mode = os.stat("/tmp")
+        if ((mode.st_uid != 0)
+                or (mode.st_gid != 0)
+                or (oct(mode.st_mode)[-4:] != '1777')):
+            self.collectExtOutput("/bin/ls -ld /tmp",
+                                  suggest_filename="tmp-dir-mode-fail")
         return
