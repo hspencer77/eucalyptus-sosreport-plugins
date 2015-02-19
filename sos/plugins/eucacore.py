@@ -71,4 +71,9 @@ class eucacore(sos.plugintools.PluginBase):
                 or (oct(mode.st_mode)[-4:] != '1777')):
             self.collectExtOutput("/bin/ls -ld /tmp",
                                   suggest_filename="tmp-dir-mode-fail")
+        # gather a recursive listing of /var/lib/eucalyptus, including
+        # dot-files
+        if os.path.exists('/var/lib/eucalyptus'):
+            self.collectExtOutput("/bin/ls -laR /var/lib/eucalyptus",
+                                  suggest_filename="ls-laR-var-lib-eucalyptus")
         return
