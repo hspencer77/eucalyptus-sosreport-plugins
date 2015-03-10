@@ -31,28 +31,28 @@ import os.path
 import sys
 import subprocess
 
+from sos.plugins.eucameta import __version__
+
 
 class build_py_with_git_version(build_py):
     '''Like build_py, but also hardcoding the version in __init__.__version__
        so it's consistent even outside of the source tree'''
 
     def build_module(self, module, module_file, package):
-        build_py.build_module(self, module, module_file, package)
-        print module, module_file, package
-        if module == '__init__' and '.' not in package:
+        orig_outfile, _ = build_py.build_module(self, module, module_file,
+                                                package)
+        if module == 'eucameta' and package == 'sos.plugins':
             version_line = "__version__ = '{0}'\n".format(__version__)
-            old_init_name = self.get_module_outfile(self.build_lib, (package,),
-                                                    module)
-            new_init_name = old_init_name + '.new'
-            with open(new_init_name, 'w') as new_init:
-                with open(old_init_name) as old_init:
-                    for line in old_init:
+            new_outfile = orig_outfile + '.new'
+            with open(new_outfile, 'w') as new_fh:
+                with open(orig_outfile) as orig_fh:
+                    for line in orig_fh:
                         if line.startswith('__version__ ='):
-                            new_init.write(version_line)
+                            new_fh.write(version_line)
                         else:
-                            new_init.write(line)
-                new_init.flush()
-            os.rename(new_init_name, old_init_name)
+                            new_fh.write(line)
+                new_fh.flush()
+            os.rename(new_outfile, orig_outfile)
 
 class sdist_with_git_version(sdist):
     '''Like sdist, but also hardcoding the version in __init__.__version__ so
@@ -61,38 +61,17 @@ class sdist_with_git_version(sdist):
     def make_release_tree(self, base_dir, files):
         sdist.make_release_tree(self, base_dir, files)
         version_line = "__version__ = '{0}'\n".format(__version__)
-        old_init_name = os.path.join(base_dir, 'sos/plugins/__init__.py')
-        new_init_name = old_init_name + '.new'
-        with open(new_init_name, 'w') as new_init:
-            with open(old_init_name) as old_init:
-                for line in old_init:
+        orig_module = os.path.join(base_dir, 'sos/plugins/eucameta.py')
+        new_module = orig_module + '.new'
+        with open(new_module, 'w') as new_fh:
+            with open(orig_module) as orig_fh:
+                for line in orig_fh:
                     if line.startswith('__version__ ='):
-                        new_init.write(version_line)
+                        new_fh.write(version_line)
                     else:
-                        new_init.write(line)
-            new_init.flush()
-        os.rename(new_init_name, old_init_name)
-
-__version__ = '0.1.7'
-
-if '__file__' in globals():
-    # Check if this is a git repo; maybe we can get more precise version info
-    try:
-        REPO_PATH = os.path.join(os.path.dirname("__file__"))
-        # noinspection PyUnresolvedReferences
-        GIT = subprocess.Popen(
-            ['git', 'describe', '--tags'], stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env={'GIT_DIR': os.path.join(REPO_PATH, '.git')})
-        GIT.wait()
-        GIT.stderr.read()
-        if GIT.returncode == 0:
-            __version__ = GIT.stdout.read().strip().lstrip('v')
-            if type(__version__).__name__ == 'bytes':
-                __version__ = __version__.decode()
-    except:
-        # Not really a bad thing; we'll just use what we had
-        pass
+                        new_fh.write(line)
+            new_fh.flush()
+        os.rename(new_module, orig_module)
 
 setup(name='eucalyptus-sos-plugins',
       version=__version__,
