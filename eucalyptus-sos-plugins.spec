@@ -4,7 +4,7 @@
 Summary:       A plugin to sosreport to collect data about Eucalyptus clouds
 Name:          eucalyptus-sos-plugins
 Version:       0.1.7
-Release:       1%{?dist}
+Release:       0%{?build_id:.%build_id}%{?dist}
 License:       GPLv2+
 Group:         Applications/System
 Url:           http://github.com/eucalyptus/eucalyptus-sosreport-plugins
@@ -14,7 +14,7 @@ BuildRequires: python2-devel
 BuildRequires: python-setuptools
 Requires:      sos
 
-Source0:       %{name}-%{version}.tar.gz
+Source0:       %{tarball_basedir}.tar.gz
 
 
 %description
@@ -26,7 +26,7 @@ information on Eucalyptus clouds.
 
 
 %prep
-%setup -q
+%setup -q -n %{tarball_basedir}
 
 
 %build
@@ -35,6 +35,8 @@ information on Eucalyptus clouds.
 
 %install
 %{__python2} setup.py install --skip-build --root $RPM_BUILD_ROOT
+rm $RPM_BUILD_ROOT/%{python_sitelib}/sos/__init__.py*
+rm $RPM_BUILD_ROOT/%{python_sitelib}/sos/plugins/__init__.py*
 
 
 %files
@@ -44,6 +46,10 @@ information on Eucalyptus clouds.
 
 
 %changelog
+* Tue Mar 10 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7
+- Removed __init__.py files that conflict with the sos package
+- Macro-ized tarball names and release numbers for use with rel-eng build system
+
 * Fri Feb 13 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7-1
 - Revamped build process
 - Switched to noarch
