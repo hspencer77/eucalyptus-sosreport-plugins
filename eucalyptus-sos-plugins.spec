@@ -35,6 +35,8 @@ information on Eucalyptus clouds.
 
 %install
 %{__python2} setup.py install --skip-build --root $RPM_BUILD_ROOT
+rm $RPM_BUILD_ROOT/%{python_sitelib}/sos/__init__.py*
+rm $RPM_BUILD_ROOT/%{python_sitelib}/sos/plugins/__init__.py*
 
 
 %files
@@ -44,6 +46,9 @@ information on Eucalyptus clouds.
 
 
 %changelog
+* Tue Mar 10 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7
+- Removed __init__.py files that conflict with the sos package
+
 * Fri Feb 13 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7-1
 - Revamped build process
 - Switched to noarch
