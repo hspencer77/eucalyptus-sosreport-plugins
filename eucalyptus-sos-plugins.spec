@@ -14,7 +14,7 @@ BuildRequires: python2-devel
 BuildRequires: python-setuptools
 Requires:      sos
 
-Source0:       %{tarball_basedir}.tar.gz
+Source0:       %{tarball_basedir}.tar.xz
 
 
 %description
