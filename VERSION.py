@@ -26,14 +26,14 @@ import os.path
 import subprocess
 
 
-__version__ = '0.1.7'
+__version__ = '0.1.7-48-gaeba604'
 
 BUFSIZE = 16 * 1024
 
 if '__file__' in globals():
     # Check if this is a git repo; maybe we can get more precise version info
     try:
-        REPO_PATH = os.path.join(os.path.dirname(__file__), '..', '..')
+        REPO_PATH = "."
         # noinspection PyUnresolvedReferences
         GIT = subprocess.Popen(
             ['git', 'describe', '--tags'], stdout=subprocess.PIPE,

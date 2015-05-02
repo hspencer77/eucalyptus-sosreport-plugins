@@ -26,12 +26,11 @@
 
 from distutils.command.build_py import build_py
 from distutils.command.sdist import sdist
-from setuptools import setup
 import os.path
-import sys
-import subprocess
 
-from sos.plugins.eucameta import __version__
+from setuptools import setup
+
+from VERSION import __version__
 
 
 class build_py_with_git_version(build_py):
@@ -41,7 +40,7 @@ class build_py_with_git_version(build_py):
     def build_module(self, module, module_file, package):
         orig_outfile, _ = build_py.build_module(self, module, module_file,
                                                 package)
-        if module == 'eucameta' and package == 'sos.plugins':
+        if module == 'VERSION':
             version_line = "__version__ = '{0}'\n".format(__version__)
             new_outfile = orig_outfile + '.new'
             with open(new_outfile, 'w') as new_fh:
@@ -61,7 +60,7 @@ class sdist_with_git_version(sdist):
     def make_release_tree(self, base_dir, files):
         sdist.make_release_tree(self, base_dir, files)
         version_line = "__version__ = '{0}'\n".format(__version__)
-        orig_module = os.path.join(base_dir, 'sos/plugins/eucameta.py')
+        orig_module = "VERSION.py"
         new_module = orig_module + '.new'
         with open(new_module, 'w') as new_fh:
             with open(orig_module) as orig_fh:
