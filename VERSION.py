@@ -26,7 +26,7 @@ import os.path
 import subprocess
 
 
-__version__ = '0.1.7-48-gaeba604'
+__version__ = '0.1.7'
 
 BUFSIZE = 16 * 1024
 
