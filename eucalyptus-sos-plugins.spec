@@ -3,7 +3,7 @@
 
 Summary:       A plugin to sosreport to collect data about Eucalyptus clouds
 Name:          eucalyptus-sos-plugins
-Version:       0.1.7
+Version:       0.1.8
 Release:       0%{?build_id:.%build_id}%{?dist}
 License:       GPLv2+
 Group:         Applications/System
@@ -46,6 +46,9 @@ rm $RPM_BUILD_ROOT/%{python_sitelib}/sos/plugins/__init__.py*
 
 
 %changelog
+* Wed May 13 2015 Matt Bacchi <matt.bacchi@hp.com> - 0.1.8
+- reworked eucameta.py functionality to prevent sos trying to load it as a plugin
+
 * Tue Mar 10 2015 Garrett Holmstrom <gholms@fedoraproject.org> - 0.1.7
 - Removed __init__.py files that conflict with the sos package
 - Macro-ized tarball names and release numbers for use with rel-eng build system
