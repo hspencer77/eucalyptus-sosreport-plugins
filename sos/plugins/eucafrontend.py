@@ -14,14 +14,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-import sos.plugintools
 import os
 import subprocess
 import tempfile
 import re
+try:
+    from sos.plugins import Plugin, RedHatPlugin
+    object = ['Plugin', 'RedHatPlugin']
+except ImportError:
+    import sos.plugintools
+    object = ['sos.plugintools.PluginBase']
 
 
-class eucafrontend(sos.plugintools.PluginBase):
+class eucafrontend(object):
     """Eucalyptus Cloud - Frontend
     """
     def checkenabled(self):

@@ -14,12 +14,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-import sos.plugintools
 import os
 import subprocess
+try:
+    from sos.plugins import Plugin, RedHatPlugin
+    object = ['Plugin', 'RedHatPlugin']
+except ImportError:
+    import sos.plugintools
+    object = ['sos.plugintools.PluginBase']
 
 
-class eucadb(sos.plugintools.PluginBase):
+class eucadb(object):
 
     """Eucalyptus Cloud - PostgreSQL
     """
